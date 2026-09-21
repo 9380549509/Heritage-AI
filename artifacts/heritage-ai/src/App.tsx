@@ -1,4 +1,4 @@
-import { type ChangeEvent, type DragEvent, type ReactNode, useMemo, useState } from 'react';
+import { type ChangeEvent, type DragEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAnalyzeHeritageImage, useExplainHeritageImage, useHealthCheck, useListHeritageSites } from '@workspace/api-client-react';
 import type { HeritageAnalysis, HeritageAnalysisInputLanguage, HeritageAnalysisInputMimeType, HeritageExplanation } from '@workspace/api-client-react';
@@ -24,6 +24,13 @@ const languageOptions: { value: HeritageAnalysisInputLanguage; label: string; na
   { value: 'English', label: 'English', native: 'English' },
   { value: 'Kannada', label: 'Kannada', native: 'ಕನ್ನಡ' },
   { value: 'Hindi', label: 'Hindi', native: 'हिन्दी' },
+];
+
+const analysisStages = [
+  'Examining architectural features',
+  'Comparing heritage characteristics',
+  'Identifying monument',
+  'Preparing your heritage guide',
 ];
 
 function readSession(): HeritageSession | null {
@@ -160,6 +167,7 @@ function Home() {
   const [selectedFile, setSelectedFile] = useState<{ imageBase64: string; mimeType: SupportedMime; imageUrl: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const [analysisStage, setAnalysisStage] = useState(0);
   const analyze = useAnalyzeHeritageImage();
   const sites = useListHeritageSites({ query: { queryKey: ['/api/heritage/sites'], staleTime: 300_000 } });
 
@@ -204,6 +212,7 @@ function Home() {
     }
     const session: HeritageSession = { ...selectedFile, language };
     writeSession(session);
+    setAnalysisStage(0);
     analyze.mutate({ data: { image_base64: selectedFile.imageBase64, mime_type: selectedFile.mimeType, language } }, {
       onSuccess: (analysis) => {
         writeSession({ ...session, analysis });
@@ -211,6 +220,18 @@ function Home() {
       },
       onError: (mutationError) => setError(extractError(mutationError)),
     });
+  }
+
+  useEffect(() => {
+    if (!analyze.isPending) return;
+    const timer = window.setInterval(() => {
+      setAnalysisStage((current) => Math.min(current + 1, analysisStages.length - 1));
+    }, 1100);
+    return () => window.clearInterval(timer);
+  }, [analyze.isPending]);
+
+  if (analyze.isPending) {
+    return <AnalysisState preview={preview} stage={analysisStage} />;
   }
 
   return (
@@ -229,7 +250,7 @@ function Home() {
             Let the stone<br /><span className="text-[#d9a441]">tell its story.</span>
           </h1>
           <p className="mt-8 max-w-[510px] text-[16px] leading-7 text-[#a98b6c] sm:text-[18px]">
-            Photograph a monument anywhere in Karnataka. We’ll offer a careful identification, the history around it, and the details worth looking at twice.
+            Photograph any heritage monument in Karnataka. AI identifies it, explains its history and architecture, and guides your visit.
           </p>
           <div className="mt-12 flex max-w-[470px] items-center gap-5 border-t border-[#43291c] pt-5 text-[11px] text-[#8b6a4e]">
             <div className="flex items-center gap-2"><Camera size={15} className="text-[#d9a441]" /> One photograph</div>
@@ -301,6 +322,60 @@ function Home() {
   );
 }
 
+function AnalysisState({ preview, stage }: { preview: string; stage: number }) {
+  return (
+    <div className="mx-auto flex min-h-[calc(100dvh-72px)] max-w-[1160px] items-center px-5 py-10 sm:px-8 lg:min-h-screen lg:px-14">
+      <div className="grid w-full items-center gap-10 lg:grid-cols-[minmax(280px,.78fr)_minmax(0,1.22fr)] lg:gap-20">
+        <div className="fade-up">
+          <div className="eyebrow mb-4 flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#d9a441] pulse-dot" />Plate 01 / Reading in progress</div>
+          <h1 className="display-font max-w-[600px] text-5xl leading-[.98] tracking-[-.04em] text-[#f3e5c8] sm:text-7xl">
+            Reading the<br /><span className="text-[#d9a441]">stone.</span>
+          </h1>
+          <p className="mt-6 max-w-[430px] text-[15px] leading-7 text-[#a98b6c]">
+            A careful second opinion is taking shape from the visible forms, materials, and details in your photograph.
+          </p>
+          <div className="mt-8 flex items-center gap-3 text-[11px] text-[#82634a]">
+            <span className="h-2 w-2 rounded-full bg-[#76a475] pulse-dot" />
+            Gemini vision is studying the frame
+          </div>
+        </div>
+
+        <div className="ink-card fade-up fade-up-delay-1 rounded-[24px] p-3 sm:p-5">
+          <div className="relative overflow-hidden rounded-[18px] border border-[#604126] bg-[#28170f]">
+            <div className="grid gap-0 sm:grid-cols-[.8fr_1.2fr]">
+              <div className="relative aspect-[4/3] overflow-hidden sm:aspect-auto sm:min-h-[400px]">
+                {preview && <img src={preview} alt="Photograph being analyzed" className="absolute inset-0 h-full w-full object-cover" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1e1009]/90 via-transparent to-[#1e1009]/10" />
+                <div className="absolute bottom-4 left-4 eyebrow">Your photograph</div>
+              </div>
+              <div className="flex flex-col justify-center p-6 sm:p-8">
+                <div className="mb-7 flex items-center justify-between">
+                  <div className="eyebrow">AI field reading</div>
+                  <Sparkles size={17} className="text-[#d9a441]" />
+                </div>
+                <div className="mb-8 h-px bg-[#49301f]">
+                  <div className="h-px bg-[#d9a441] transition-all duration-700" style={{ width: `${((stage + 1) / analysisStages.length) * 100}%` }} />
+                </div>
+                <div className="space-y-5">
+                  {analysisStages.map((label, index) => (
+                    <div key={label} className={`flex items-center gap-3 transition-colors duration-500 ${index <= stage ? 'text-[#ead8b9]' : 'text-[#6e503a]'}`}>
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[10px] transition-all duration-500 ${index < stage ? 'border-[#d9a441] bg-[#d9a441] text-[#28160d]' : index === stage ? 'border-[#d9a441] text-[#d9a441] shadow-[0_0_0_5px_rgba(217,164,65,.08)]' : 'border-[#59402a]'}`}>
+                        {index < stage ? <Check size={13} /> : `0${index + 1}`}
+                      </span>
+                      <span className={`text-[13px] ${index === stage ? 'font-semibold' : ''}`}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-9 border-t border-[#49301f] pt-4 text-[11px] leading-5 text-[#856549]">Please keep this window open while the guide prepares your field note.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SessionEmpty({ page }: { page: 'results' | 'explain' }) {
   const [, setLocation] = useLocation();
   return (
@@ -319,15 +394,22 @@ function Results() {
   if (!session?.imageUrl || !session.analysis) return <SessionEmpty page="results" />;
   const analysis = session.analysis;
   const confidence = Math.max(0, Math.min(100, Math.round(analysis.confidence <= 1 ? analysis.confidence * 100 : analysis.confidence)));
+  const isUncertain = confidence < 60;
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8 sm:py-12 lg:px-14 lg:py-16">
       <div className="mb-10 flex items-center justify-between">
         <div className="eyebrow">Plate 02 / Field note</div>
-        <Link href="/" className="flex items-center gap-2 text-[11px] text-[#b99668] transition-colors hover:text-[#e8c66f]" data-testid="link-new-identification"><RotateCcw size={14} /> New photograph</Link>
+        <Link href="/" className="flex items-center gap-2 rounded-lg border border-[#604126] bg-[#28170f] px-3 py-2 text-[11px] text-[#d1b27e] transition-colors hover:border-[#a3773d] hover:text-[#f0d28a]" data-testid="link-new-identification"><RotateCcw size={14} /> Try another photograph</Link>
       </div>
       <SectionHeading eyebrow="A considered identification" title={analysis.monument_name}>
         <div className="flex items-center gap-2 rounded-full border border-[#624529] bg-[#2d1a11] px-3 py-2 text-[11px] text-[#cbaa72]"><MapPin size={13} /> {analysis.location}</div>
       </SectionHeading>
+      {isUncertain && (
+        <div className="mb-6 flex items-start gap-3 rounded-[16px] border border-[#8b6132] bg-[#3a2414] px-4 py-3.5 text-[13px] leading-6 text-[#e8c98e]" role="status" data-testid="status-identification-uncertain">
+          <Info size={17} className="mt-1 shrink-0 text-[#e0b24c]" />
+          <span><strong className="font-semibold text-[#f3dda9]">Identification uncertain</strong> — please upload a clearer photograph.</span>
+        </div>
+      )}
       <div className="grid gap-5 lg:grid-cols-[minmax(260px,0.82fr)_minmax(0,1.18fr)]">
         <div className="fade-up overflow-hidden rounded-[20px] border border-[#604126] bg-[#28170f]">
           <div className="relative aspect-[4/5] max-h-[620px]">
@@ -342,15 +424,16 @@ function Results() {
           <div className="ink-card fade-up fade-up-delay-1 rounded-[20px] p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-5 border-b border-[#49301f] pb-6">
               <div><div className="eyebrow mb-2">The short answer</div><p className="max-w-[590px] text-[15px] leading-7 text-[#d5c1a0]" data-testid="text-analysis-description">{analysis.description}</p></div>
-              <div className="shrink-0"><div className="mono-font text-3xl text-[#e0b24c]" data-testid="text-confidence">{confidence}%</div><div className="mt-1 text-right text-[10px] uppercase tracking-[.1em] text-[#856549]">confidence</div></div>
+              <div className="shrink-0 text-left sm:text-right"><div className={`mono-font text-3xl ${isUncertain ? 'text-[#d7a566]' : 'text-[#e0b24c]'}`} data-testid="text-confidence">{confidence}%</div><div className="mt-1 text-[10px] uppercase tracking-[.1em] text-[#856549]">AI confidence</div></div>
             </div>
+            <ConfidenceMeter confidence={confidence} uncertain={isUncertain} />
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <Fact label="Likely period" value={analysis.historical_period} />
               <Fact label="Place" value={analysis.location} />
             </div>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
-            <InfoBlock eyebrow="Why this reading" title="Clues in the frame" content={analysis.reason_for_identification} />
+            <InsightBlock content={analysis.reason_for_identification} />
             <InfoBlock eyebrow="A little context" title="Why it matters" content={analysis.historical_significance} />
           </div>
           <div className="ink-card fade-up fade-up-delay-2 rounded-[20px] p-6 sm:p-8">
@@ -372,12 +455,37 @@ function Results() {
   );
 }
 
+function ConfidenceMeter({ confidence, uncertain }: { confidence: number; uncertain: boolean }) {
+  return (
+    <div className="mt-6 rounded-xl border border-[#49301f] bg-[#24140d] p-4" data-testid="confidence-meter">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="eyebrow text-[#a47b4c]">Confidence reading</span>
+        <span className={`mono-font text-[10px] ${uncertain ? 'text-[#d7a566]' : 'text-[#d9a441]'}`}>{uncertain ? 'NEEDS A CLEARER FRAME' : 'STRONG VISUAL MATCH'}</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-[#4a2c1c]">
+        <div className={`h-full rounded-full transition-all duration-700 ${uncertain ? 'bg-[#b77a45]' : 'bg-[#d9a441]'}`} style={{ width: `${confidence}%` }} />
+      </div>
+      <div className="mt-2 flex justify-between text-[10px] text-[#795a40]"><span>Uncertain</span><span>Confident</span></div>
+    </div>
+  );
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return <div><div className="eyebrow mb-1.5 text-[#8b694b]">{label}</div><div className="text-[14px] text-[#d9c5a3]">{value}</div></div>;
 }
 
 function InfoBlock({ eyebrow, title, content }: { eyebrow: string; title: string; content: string }) {
   return <div className="rounded-[18px] border border-[#452b1d] bg-[#25150e] p-5"><div className="eyebrow mb-3 text-[#a47b4c]">{eyebrow}</div><h3 className="display-font mb-2 text-[21px] text-[#dfcdaa]">{title}</h3><p className="text-[13px] leading-6 text-[#9d7f60]">{content}</p></div>;
+}
+
+function InsightBlock({ content }: { content: string }) {
+  return (
+    <div className="ai-insight-card rounded-[18px] border border-[#916d37]/70 bg-[#3a2815] p-5 sm:p-6" data-testid="card-ai-insight">
+      <div className="mb-3 flex items-center gap-2 text-[#e0b24c]"><Sparkles size={15} /><div className="eyebrow text-[#dcb36a]">AI INSIGHT</div></div>
+      <h3 className="display-font mb-2 text-[23px] text-[#f0d9a4]">What you&apos;re seeing</h3>
+      <p className="text-[13px] leading-6 text-[#d2b17b]">{content}</p>
+    </div>
+  );
 }
 
 function ListBlock({ eyebrow, items }: { eyebrow: string; items: string[] }) {
