@@ -1,6 +1,6 @@
-# [Project name]
+# Heritage AI
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Heritage AI helps people identify Karnataka monuments from photographs and understand the history and architecture around what they are seeing.
 
 ## Run & Operate
 
@@ -9,7 +9,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `GEMINI_API_KEY` — server-only Gemini API key for image analysis
 
 ## Stack
 
@@ -22,15 +22,24 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/heritage-ai/src/App.tsx` — the responsive upload, results, and architecture-explanation experience
+- `artifacts/heritage-ai/src/index.css` — Heritage AI visual tokens and global styles
+- `artifacts/api-server/src/routes/heritage.ts` — server-side Gemini vision requests and validation
+- `lib/api-spec/openapi.yaml` — source of truth for heritage API contracts
+- `lib/api-client-react/src/generated/` and `lib/api-zod/src/generated/` — generated API hooks and schemas
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Image bytes are converted to base64 in the browser for the short hackathon flow; the server forwards them to Gemini and never exposes the API key to the client.
+- The app is intentionally stateless: the selected image and last result persist in browser session storage, while analysis remains on demand.
+- The Gemini prompt requires strict JSON and explicitly returns `Unknown` when the image is unclear or not a supported Karnataka heritage site.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Upload or select a monument photograph, preview it, and ask Gemini to identify it.
+- View confidence, location, historical context, architecture, facts, travel timing, and nearby attractions.
+- Ask for a focused explanation of visible architectural features.
+- Switch explanations between English, Kannada, and Hindi.
 
 ## User preferences
 
@@ -38,7 +47,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Do not move `GEMINI_API_KEY` into frontend code or expose it through browser environment variables.
+- The API accepts JSON with base64 image data and is configured for a 12 MB request body; client-side uploads are limited to JPG, PNG, and WEBP.
+- Run API codegen after changing `lib/api-spec/openapi.yaml`.
 
 ## Pointers
 
