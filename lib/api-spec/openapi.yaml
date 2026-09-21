@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: heritage
+    description: Karnataka heritage recognition operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /heritage/sites:
+    get:
+      operationId: listHeritageSites
+      tags: [heritage]
+      summary: List supported Karnataka heritage sites
+      responses:
+        "200":
+          description: Supported heritage sites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HeritageSite"
+  /heritage/analyze:
+    post:
+      operationId: analyzeHeritageImage
+      tags: [heritage]
+      summary: Identify a Karnataka heritage monument from an image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeritageAnalysisInput"
+      responses:
+        "200":
+          description: Monument identification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeritageAnalysis"
+        "400":
+          description: Invalid image input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Vision service failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /heritage/explain:
+    post:
+      operationId: explainHeritageImage
+      tags: [heritage]
+      summary: Explain visible architectural features in an image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeritageExplanationInput"
+      responses:
+        "200":
+          description: Architectural explanation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeritageExplanation"
+        "400":
+          description: Invalid image input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Vision service failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +109,109 @@ components:
           type: string
       required:
         - status
+    HeritageSite:
+      type: object
+      properties:
+        name:
+          type: string
+        region:
+          type: string
+        period:
+          type: string
+        accent:
+          type: string
+      required: [name, region, period, accent]
+    HeritageAnalysisInput:
+      type: object
+      properties:
+        image_base64:
+          type: string
+          minLength: 20
+        mime_type:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        language:
+          type: string
+          enum: [English, Kannada, Hindi]
+      required: [image_base64, mime_type, language]
+    HeritageExplanationInput:
+      type: object
+      properties:
+        image_base64:
+          type: string
+          minLength: 20
+        mime_type:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        language:
+          type: string
+          enum: [English, Kannada, Hindi]
+      required: [image_base64, mime_type, language]
+    HeritageAnalysis:
+      type: object
+      properties:
+        monument_name:
+          type: string
+        confidence:
+          type: number
+        location:
+          type: string
+        historical_period:
+          type: string
+        historical_significance:
+          type: string
+        architecture:
+          type: string
+        interesting_facts:
+          type: array
+          items:
+            type: string
+        best_time_to_visit:
+          type: string
+        nearby_attractions:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+        reason_for_identification:
+          type: string
+      required:
+        - monument_name
+        - confidence
+        - location
+        - historical_period
+        - historical_significance
+        - architecture
+        - interesting_facts
+        - best_time_to_visit
+        - nearby_attractions
+        - description
+        - reason_for_identification
+    HeritageExplanation:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        features:
+          type: array
+          items:
+            type: object
+            properties:
+              feature:
+                type: string
+              explanation:
+                type: string
+            required: [feature, explanation]
+        note:
+          type: string
+      required: [title, summary, features, note]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
 
