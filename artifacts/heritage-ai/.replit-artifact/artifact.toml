@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Heritage AI"
+description = "An AI-powered Karnataka heritage companion that identifies monuments from photographs and explains their history, architecture, and travel context in multiple languages."
+version = "1.0.0"
+id = "artifacts/heritage-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22284
+
+[services.development]
+run = "pnpm --filter @workspace/heritage-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/heritage-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/heritage-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22284"
+BASE_PATH = "/"
