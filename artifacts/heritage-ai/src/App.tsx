@@ -1,11 +1,12 @@
 import { type ChangeEvent, type DragEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAnalyzeHeritageImage, useExplainHeritageImage, useHealthCheck, useListHeritageSites } from '@workspace/api-client-react';
+import { useAnalyzeHeritageImage, useExplainHeritageImage, useHealthCheck } from '@workspace/api-client-react';
 import type { HeritageAnalysis, HeritageAnalysisInputLanguage, HeritageAnalysisInputMimeType, HeritageExplanation } from '@workspace/api-client-react';
-import { ArrowUpRight, Camera, Check, ChevronRight, Compass, FileImage, Info, Landmark, LoaderCircle, MapPin, Menu, RotateCcw, ScanLine, Sparkles, X } from 'lucide-react';
-import { Link, Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
+import { ArrowLeft, ArrowUpRight, Camera, Check, ChevronRight, Compass, ExternalLink, FileImage, Info, Landmark, LoaderCircle, MapPin, Menu, RotateCcw, ScanLine, ShieldCheck, Sparkles, TriangleAlert, X } from 'lucide-react';
+import { Link, Route, Switch, Router as WouterRouter, useLocation, useRoute } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import NotFound from '@/pages/not-found';
+import { bagalkotDestinations, destinationCategories, getDestination, type BagalkotDestination, type DestinationCategory } from '@/data/bagalkotDestinations';
 
 const queryClient = new QueryClient();
 const SESSION_KEY = 'heritage-ai-session';
@@ -169,7 +170,7 @@ function Home() {
   const [error, setError] = useState('');
   const [analysisStage, setAnalysisStage] = useState(0);
   const analyze = useAnalyzeHeritageImage();
-  const sites = useListHeritageSites({ query: { queryKey: ['/api/heritage/sites'], staleTime: 300_000 } });
+  const featuredPlace = getDestination(new URLSearchParams(window.location.search).get('place') ?? undefined);
 
   const accepted = 'image/jpeg,image/png,image/webp';
 
@@ -260,7 +261,13 @@ function Home() {
         </section>
 
         <section className="fade-up fade-up-delay-1">
-          <div className="ink-card rounded-[22px] p-3 sm:p-4">
+          <div id="capture" className="ink-card rounded-[22px] p-3 sm:p-4">
+            {featuredPlace && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-[#72572d] bg-[#342414] px-4 py-3 text-[12px] leading-5 text-[#d8bb84]">
+                <Compass size={16} className="mt-0.5 shrink-0 text-[#e0b24c]" />
+                <span>Exploring <strong className="text-[#f1d69a]">{featuredPlace.name}</strong>. Upload a photograph and ask the guide to read what is visible.</span>
+              </div>
+            )}
             <div className="mb-4 flex items-center justify-between px-2 pt-1">
               <div>
                 <div className="eyebrow mb-1">Field capture</div>
@@ -298,28 +305,179 @@ function Home() {
         </section>
       </div>
 
-      <section className="fade-up fade-up-delay-2 mt-20 border-t border-[#43291c] pt-8 sm:mt-28">
-        <div className="mb-6 flex items-end justify-between">
-          <div><div className="eyebrow mb-2">The Karnataka index</div><h2 className="display-font text-2xl text-[#e8d7b8]">Places we know by shape</h2></div>
-          <span className="mono-font text-[10px] text-[#75583f]">{sites.isLoading ? 'LOADING INDEX' : `${sites.data?.length ?? 0} SITES IN INDEX`}</span>
-        </div>
-        {sites.isError ? (
-          <div className="rounded-xl border border-[#4a2b1d] bg-[#27160f] p-5 text-sm text-[#aa8968]">The index is taking a pause. You can still identify a photograph.</div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {(sites.data ?? []).slice(0, 4).map((site, index) => (
-              <div key={`${site.name}-${index}`} className="group relative overflow-hidden rounded-xl border border-[#3f281b] bg-[#25150e] p-4 transition-colors hover:border-[#78562f]" data-testid={`card-heritage-site-${index}`}>
-                <div className="mb-7 flex items-center justify-between"><span className="mono-font text-[10px] text-[#806044]">0{index + 1}</span><span className="h-2 w-2 rounded-full" style={{ background: site.accent }} /></div>
-                <div className="text-[14px] font-semibold text-[#e0cdae]">{site.name}</div>
-                <div className="mt-1 text-[11px] text-[#88674d]">{site.region} · {site.period}</div>
-                <ChevronRight size={15} className="absolute bottom-4 right-4 text-[#735239] transition-transform group-hover:translate-x-1" />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <ExploreBagalkot />
     </div>
   );
+}
+
+function ExploreBagalkot() {
+  const [category, setCategory] = useState<'All' | DestinationCategory>('All');
+  const visibleDestinations = category === 'All'
+    ? bagalkotDestinations
+    : bagalkotDestinations.filter((destination) => destination.category === category);
+
+  return (
+    <section id="bagalkot" className="fade-up fade-up-delay-2 mt-20 border-t border-[#43291c] pt-8 sm:mt-28">
+      <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="eyebrow mb-2">Explore Bagalkot</div>
+          <h2 className="display-font max-w-[680px] text-3xl leading-tight text-[#e8d7b8] sm:text-4xl">A field catalogue for the district.</h2>
+          <p className="mt-3 max-w-[650px] text-[13px] leading-6 text-[#957657]">Heritage, pilgrimage, museums, river landscapes, and one distinctly Bagalkot story — each entry keeps its source and its uncertainty visible.</p>
+        </div>
+        <div className="mono-font text-[10px] text-[#75583f]">{bagalkotDestinations.length} DESTINATIONS · {bagalkotDestinations.filter((destination) => destination.verificationStatus === 'verified').length} VERIFIED RECORDS</div>
+      </div>
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-1" aria-label="Filter Bagalkot destinations">
+        {destinationCategories.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setCategory(option)}
+            className={`whitespace-nowrap rounded-full border px-3 py-2 text-[11px] transition-colors ${category === option ? 'border-[#b98434] bg-[#d9a441] text-[#28160d]' : 'border-[#583a27] bg-[#2b1a12] text-[#b99668] hover:border-[#8a6435] hover:text-[#e5cc99]'}`}
+            data-testid={`button-filter-${option.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleDestinations.map((destination, index) => (
+          <Link
+            key={destination.slug}
+            href={`/explore/${destination.slug}`}
+            className="group overflow-hidden rounded-[18px] border border-[#452b1d] bg-[#25150e] transition-all duration-300 hover:-translate-y-1 hover:border-[#896332] hover:bg-[#2d1a11]"
+            data-testid={`card-destination-${destination.slug}`}
+          >
+            <div className="relative aspect-[16/9] overflow-hidden bg-[#321d12]">
+              {destination.photos[0] ? (
+                <img src={destination.photos[0].src} alt={destination.photos[0].alt} className="h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-105 group-hover:opacity-100" loading={index > 5 ? 'lazy' : 'eager'} />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_30%_25%,rgba(217,164,65,.25),transparent_42%),linear-gradient(135deg,#43281a,#21120c)] px-8 text-center">
+                  <span className="display-font text-2xl text-[#b88a4f]">Photo pending verification</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1d100a] via-transparent to-transparent" />
+              <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                <span className="eyebrow text-[#e0b24c]">{destination.category}</span>
+                {destination.verificationStatus === 'requires-verification' && <span className="flex items-center gap-1 text-[10px] text-[#e4bc7d]"><TriangleAlert size={12} /> Verify</span>}
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="mb-2 flex items-start justify-between gap-4">
+                <h3 className="display-font text-[23px] leading-tight text-[#e5d2af]">{destination.name}</h3>
+                <ChevronRight size={17} className="mt-1 shrink-0 text-[#8e673b] transition-transform group-hover:translate-x-1" />
+              </div>
+              <p className="text-[11px] text-[#856348]">{destination.location}</p>
+              <p className="mt-3 line-clamp-2 text-[13px] leading-6 text-[#a98b6c]">{destination.summary}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DestinationPage() {
+  const [, params] = useRoute<{ slug: string }>('/explore/:slug');
+  const [, setLocation] = useLocation();
+  const destination = getDestination(params?.slug);
+
+  if (!destination) return <NotFound />;
+
+  const related = destination.nearbySlugs
+    .map((slug) => getDestination(slug))
+    .filter((item): item is BagalkotDestination => Boolean(item))
+    .slice(0, 3);
+  const heroPhoto = destination.photos[0];
+
+  return (
+    <div className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8 sm:py-12 lg:px-14 lg:py-16">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <button type="button" onClick={() => setLocation('/#bagalkot')} className="flex items-center gap-2 text-[11px] text-[#b99668] transition-colors hover:text-[#e8c66f]" data-testid="button-back-to-bagalkot"><ArrowLeft size={14} /> Back to Bagalkot</button>
+        <span className="eyebrow hidden sm:block">Destination file / {destination.category}</span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,.85fr)] lg:items-end">
+        <div className="relative min-h-[360px] overflow-hidden rounded-[22px] border border-[#604126] bg-[#28170f] sm:min-h-[510px]">
+          {heroPhoto ? (
+            <img src={heroPhoto.src} alt={heroPhoto.alt} className="absolute inset-0 h-full w-full object-cover" data-testid="img-destination-hero" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_25%,rgba(217,164,65,.25),transparent_42%),linear-gradient(135deg,#43281a,#21120c)] px-8 text-center">
+              <div><TriangleAlert size={28} className="mx-auto mb-3 text-[#d9a441]" /><div className="display-font text-3xl text-[#c29a62]">Official photograph pending</div><p className="mt-2 text-xs leading-5 text-[#967656]">This entry stays honest until a verified photo source is added.</p></div>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1d100a] via-[#1d100a]/25 to-transparent" />
+          <div className="absolute bottom-5 left-5 right-5">
+            <div className="eyebrow mb-2 text-[#e0b24c]">{destination.category}</div>
+            <div className="display-font max-w-[760px] text-4xl leading-[1.04] text-[#f2e4c7] sm:text-6xl">{destination.name}</div>
+          </div>
+        </div>
+        <div className="pb-2">
+          <div className="eyebrow mb-4">A place to notice</div>
+          <p className="display-font text-3xl leading-tight text-[#e8d7b8] sm:text-4xl">{destination.summary}</p>
+          <div className="mt-6 flex items-start gap-3 border-t border-[#43291c] pt-5 text-[12px] leading-6 text-[#a98b6c]"><MapPin size={16} className="mt-1 shrink-0 text-[#d9a441]" /><span>{destination.location}</span></div>
+          <Link href={`/?place=${destination.slug}#capture`} className="button-lift mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-[#d9a441] px-5 py-4 text-[12px] font-bold text-[#2a160b]" data-testid="link-ask-ai-place"><Sparkles size={15} /> Ask AI about this place <ArrowUpRight size={15} /></Link>
+        </div>
+      </div>
+
+      {destination.verificationStatus === 'requires-verification' && (
+        <div className="mt-6 flex items-start gap-3 rounded-[16px] border border-[#8b6132] bg-[#3a2414] px-4 py-3.5 text-[12px] leading-6 text-[#e8c98e]" role="status" data-testid="status-destination-verification">
+          <TriangleAlert size={17} className="mt-1 shrink-0 text-[#e0b24c]" />
+          <span><strong className="font-semibold text-[#f3dda9]">Verification note</strong> — {destination.verificationNote}</span>
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,.8fr)]">
+        <div className="space-y-5">
+          <DestinationInfoBlock eyebrow="About the place" title="Read the setting" content={destination.about} />
+          <DestinationInfoBlock eyebrow="Historical / cultural significance" title="Why it matters" content={destination.significance} />
+          {destination.specialSection && (
+            <div className="rounded-[20px] border border-[#916d37]/70 bg-[#3a2815] p-6 sm:p-8" data-testid="card-mudhol-hound">
+              <div className="mb-3 flex items-center gap-2 text-[#e0b24c]"><ShieldCheck size={15} /><div className="eyebrow text-[#dcb36a]">Special field note</div></div>
+              <h2 className="display-font mb-4 text-3xl text-[#f0d9a4]">{destination.specialSection.title}</h2>
+              <div className="space-y-3 text-[13px] leading-6 text-[#d2b17b]">{destination.specialSection.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+            </div>
+          )}
+        </div>
+        <div className="space-y-5">
+          <DestinationListBlock eyebrow="Main attractions" items={destination.attractions} />
+          <DestinationListBlock eyebrow="Things to see" items={destination.thingsToSee} />
+          <div className="rounded-[18px] border border-[#452b1d] bg-[#25150e] p-5">
+            <div className="eyebrow mb-3 text-[#a47b4c]">Visitor information</div>
+            <ul className="space-y-3">{destination.visitorInfo.map((item, index) => <li key={`${item}-${index}`} className="flex gap-3 text-[12px] leading-5 text-[#bda381]"><Info size={14} className="mt-0.5 shrink-0 text-[#d9a441]" /><span>{item}</span></li>)}</ul>
+          </div>
+        </div>
+      </div>
+
+      <section className="mt-8 rounded-[20px] border border-[#604126] bg-[#28170f] p-5 sm:p-7">
+        <div className="mb-5 flex items-end justify-between gap-4"><div><div className="eyebrow mb-2">Photographs</div><h2 className="display-font text-3xl text-[#e8d7b8]">Look closer</h2></div><span className="mono-font text-[10px] text-[#75583f]">{destination.photos.length ? `${destination.photos.length} SOURCE PHOTOS` : 'SOURCE PHOTOS PENDING'}</span></div>
+        {destination.photos.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {destination.photos.slice(0, 5).map((photo) => <figure key={photo.src} className="overflow-hidden rounded-xl border border-[#49301f] bg-[#1d100a]"><img src={photo.src} alt={photo.alt} className="aspect-[4/3] w-full object-cover" loading="lazy" /><figcaption className="p-3 text-[10px] leading-4 text-[#866548]">{photo.credit}</figcaption></figure>)}
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-xl border border-dashed border-[#68482b] bg-[#24140d] p-5 text-[12px] leading-5 text-[#9c7c5b]"><TriangleAlert size={16} className="mt-0.5 shrink-0 text-[#d9a441]" /><span>Verified photographs for this entry are still being sourced. No unrelated image is used as a substitute.</span></div>
+        )}
+      </section>
+
+      <section className="mt-8 border-t border-[#43291c] pt-8">
+        <div className="mb-5 flex items-end justify-between"><div><div className="eyebrow mb-2">Nearby Bagalkot destinations</div><h2 className="display-font text-3xl text-[#e8d7b8]">Continue the route</h2></div></div>
+        <div className="grid gap-3 sm:grid-cols-3">{related.map((item) => <Link key={item.slug} href={`/explore/${item.slug}`} className="group rounded-[16px] border border-[#452b1d] bg-[#25150e] p-4 transition-colors hover:border-[#78562f]"><div className="mb-8 flex items-center justify-between"><span className="eyebrow text-[#a47b4c]">{item.category}</span><ChevronRight size={15} className="text-[#735239] transition-transform group-hover:translate-x-1" /></div><div className="text-[14px] font-semibold text-[#e0cdae]">{item.name}</div><div className="mt-1 text-[11px] text-[#88674d]">{item.location}</div></Link>)}</div>
+      </section>
+
+      <div className="mt-8 flex flex-col gap-3 border-t border-[#43291c] pt-5 text-[11px] text-[#806044] sm:flex-row sm:items-center sm:justify-between">
+        <span>Source: {destination.sourceLabel}</span>
+        <a href={destination.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#caa86e] hover:text-[#ebd18f]"><ExternalLink size={13} /> Open source record</a>
+      </div>
+    </div>
+  );
+}
+
+function DestinationInfoBlock({ eyebrow, title, content }: { eyebrow: string; title: string; content: string }) {
+  return <section className="ink-card rounded-[20px] p-6 sm:p-8"><div className="eyebrow mb-3 text-[#a47b4c]">{eyebrow}</div><h2 className="display-font mb-3 text-3xl text-[#e9d9ba]">{title}</h2><p className="text-[14px] leading-7 text-[#b59877]">{content}</p></section>;
+}
+
+function DestinationListBlock({ eyebrow, items }: { eyebrow: string; items: string[] }) {
+  return <section className="rounded-[18px] border border-[#452b1d] bg-[#25150e] p-5"><div className="eyebrow mb-3 text-[#a47b4c]">{eyebrow}</div><ul className="space-y-3">{items.map((item, index) => <li key={`${item}-${index}`} className="flex gap-3 text-[13px] leading-5 text-[#bda381]"><span className="mono-font mt-0.5 text-[10px] text-[#d9a441]">0{index + 1}</span><span>{item}</span></li>)}</ul></section>;
 }
 
 function AnalysisState({ preview, stage }: { preview: string; stage: number }) {
@@ -559,6 +717,7 @@ function Router() {
       <AppShell>
         <Switch>
           <Route path="/" component={Home} />
+          <Route path="/explore/:slug" component={DestinationPage} />
           <Route path="/results" component={Results} />
           <Route path="/explain" component={Explain} />
           <Route component={NotFound} />
