@@ -1,0 +1,101 @@
+Update the Explore Bagalkot section with a more authentic
+Bagalkot-focused tourism catalogue.
+
+IMPORTANT:
+Do NOT rebuild the application.
+Do NOT break the existing Gemini recognition, image upload,
+AI explanation, language selector, routes or current UI.
+
+Use the following destinations/categories:
+
+HERITAGE:
+1. Badami Cave Temples
+2. Pattadakal
+3. Aihole
+4. Mahakuta
+5. Badami Fort
+
+PILGRIMAGE & CULTURE:
+6. Kudalasangama
+7. Shivayogi Mandir
+8. Chikka Sangama
+9. Banashankari Temple
+
+MUSEUMS:
+10. Badami Archaeological Museum / Museum & Art Gallery
+11. Navanagar Museum, Bagalkot
+12. Aihole Museum
+
+NATURE / TOURISM:
+13. Almatti Dam
+
+UNIQUE BAGALKOT EXPERIENCE:
+14. Mudhol Hound / Canine Research & Information Centre,
+    Thimmapur
+
+15. Panchaganga / Shiva Temple
+    IMPORTANT: Do NOT invent information. First use the exact
+    verified name/location available in the destination data.
+    If the exact place cannot be verified, mark the content
+    as requiring verification rather than generating fictional
+    details.
+
+For every destination create a clickable card.
+
+When clicked, open a detailed destination page containing:
+
+- Hero photograph
+- 3-5 relevant photographs
+- Name
+- Location
+- Category
+- About the place
+- Historical/cultural significance
+- Main attractions
+- Things to see
+- Visitor information where verified
+- Nearby Bagalkot destinations
+- "Ask AI about this place"
+- Back to Bagalkot
+
+IMPORTANT:
+Use verified information from official Bagalkot district,
+government, museum or institutional sources where available.
+
+Never invent:
+- opening hours
+- ticket prices
+- visitor permissions
+- distances
+- travel times
+- number of animals at the Mudhol Hound centre
+- historical facts
+
+For Mudhol Hound, create a special section:
+
+"Discover the Mudhol Hound"
+
+Explain:
+- what the Mudhol Hound is
+- its connection with Mudhol/Bagalkot
+- its characteristics
+- conservation efforts
+- the Canine Research & Information Centre at Thimmapur
+
+Do NOT claim that tourists can see or interact with dogs unless
+visitor access is verified.
+
+For museums, show:
+- museum name
+- what visitors can see
+- heritage/artifact categories
+- location
+- photos
+
+Keep the current premium dark heritage design.
+
+Create all destinations from a reusable structured data model
+so that additional Bagalkot places can easily be added later.
+
+Run typecheck and production build after the update.
+Do not change working AI functionality.
