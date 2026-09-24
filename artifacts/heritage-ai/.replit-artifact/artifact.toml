@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "Heritage AI"
-description = "An AI-powered Karnataka heritage companion that identifies monuments from photographs and explains their history, architecture, and travel context in multiple languages."
+description = "An AI-powered Bagalkot heritage companion that identifies monuments from photographs and explains their history, architecture, and travel context in multiple languages."
 version = "1.0.0"
 id = "artifacts/heritage-ai"
 router = "path"
